@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0e7c7b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Sujit's Weight Loss journey</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #f7f7f5;
+    --panel: #ffffff;
+    --ink: #1b2430;
+    --slate: #5b6472;
+    --slate-light: #8b93a0;
+    --border: #e3e1da;
+    --teal: #0e7c7b;
+    --teal-soft: #e4f2f1;
+    --amber: #c17817;
+    --amber-soft: #faf1e2;
+    --red: #b3452f;
+    --shadow: 0 1px 2px rgba(27,36,48,0.04), 0 4px 14px rgba(27,36,48,0.05);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--bg);
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--ink);
+    padding: 16px 12px 50px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 680px; margin: 0 auto; }
+
+  /* Header */
+  .dash-header{
+    display:flex; align-items:baseline; justify-content:space-between;
+    padding: 4px 2px 16px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-header h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 21px; font-weight:700; letter-spacing:-0.3px; margin:0;
+  }
+  .dash-header .tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10.5px; color: var(--slate-light);
+    text-transform: uppercase; letter-spacing: 1px;
+  }
+
+  /* Stat cards */
+  .stat-row{ display:grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:8px; margin-bottom:14px; }
+  .stat-card{
+    background: var(--panel); border:1px solid var(--border); border-radius: 10px;
+    padding: 12px 10px; box-shadow: var(--shadow);
+  }
+  .stat-card .lbl{
+    font-family:'IBM Plex Mono', monospace; font-size: 9.5px; text-transform:uppercase;
+    letter-spacing: 0.6px; color: var(--slate-light); margin-bottom: 5px;
+  }
+  .stat-card .val{ font-family:'Space Grotesk', sans-serif; font-size: 19px; font-weight:700; }
+  .stat-card .val.teal{ color: var(--teal); }
+  .stat-card .val.amber{ color: var(--amber); }
+  .stat-card .sub{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; color: var(--slate-light); margin-top:2px; }
+
+  /* Panel */
+  .panel{
+    background: var(--panel); border:1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .panel-head{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom: 12px;
+  }
+  .panel-head h2{
+    font-family:'Space Grotesk', sans-serif; font-size: 13.5px; font-weight:600; margin:0;
+  }
+  .panel-head .meta{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; color: var(--slate-light); }
+
+  /* Chart */
+  svg{ width:100%; height:auto; display:block; }
+  .grid-line{ stroke: var(--border); stroke-width:1; }
+  .weight-line{ fill:none; stroke: var(--ink); stroke-width:2; }
+  .weight-area{ fill: url(#areaGrad); opacity:0.9; }
+  .weight-dot{ fill: var(--panel); stroke: var(--ink); stroke-width:2; }
+  .weight-dot.last{ fill: var(--teal); stroke:var(--teal); }
+  .target-line{ stroke: var(--teal); stroke-width:1; stroke-dasharray:3,3; }
+  .axis-label{ font-family:'IBM Plex Mono', monospace; font-size:9px; fill: var(--slate-light); }
+
+  /* Entries */
+  .entry{ border-bottom: 1px solid var(--border); }
+  .entry:last-child{ border-bottom:none; }
+  .entry-row{
+    display:flex; align-items:center; flex-wrap:wrap;
+    padding: 10px 2px; cursor:pointer; gap:6px 10px;
+  }
+  .entry-row:hover{ background: #fafaf8; }
+  .entry-date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color: var(--slate); flex:0 0 auto; }
+  .entry-mid{ flex:1; display:flex; gap:14px; align-items:center; }
+  .entry-wt{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:14.5px; flex:0 0 auto; min-width:40px; }
+  .entry-delta{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; flex:0 0 auto; min-width:36px; }
+  .entry-delta.down{ color: var(--teal); }
+  .entry-delta.up{ color: var(--red); }
+  .macro-bar{ flex:0 0 90px; height:6px; border-radius:3px; overflow:hidden; display:flex; background: var(--border); }
+  .macro-bar .p{ background: var(--teal); }
+  .macro-bar .o{ background: var(--amber-soft); }
+  .entry-nums{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--slate); text-align:right; flex:0 0 auto; margin-left:auto; }
+  .entry-nums b{ color: var(--ink); }
+  .chev{ color: var(--slate-light); font-size:11px; width:12px; text-align:center; flex-shrink:0; transition: transform 0.15s; }
+  .entry.open .chev{ transform: rotate(90deg); }
+
+  .entry-detail{ display:none; padding: 2px 2px 12px 58px; }
+  .entry.open .entry-detail{ display:block; }
+  .meal-block{ margin-bottom:8px; }
+  .meal-name{
+    font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:0.6px; color: var(--slate-light); margin-bottom:4px;
+  }
+  .meal-item{
+    display:flex; justify-content:space-between; font-size:12px; padding: 3px 0;
+    border-bottom: 1px dotted var(--border);
+  }
+  .meal-item .nm{ color: var(--ink); }
+  .meal-item .mac{ font-family:'IBM Plex Mono', monospace; color: var(--slate); white-space:nowrap; }
+  .no-detail{ font-size:11.5px; color: var(--slate-light); font-style:italic; padding: 4px 0; }
+
+  /* Week / Month group summaries */
+  .group-block{ border-bottom: 1px solid var(--border); }
+  .group-block:last-child{ border-bottom:none; }
+  .group-row{
+    display:flex; align-items:center; flex-wrap:wrap; justify-content:space-between;
+    padding: 11px 2px; cursor:pointer; gap:6px 10px; border-radius:8px;
+  }
+  .group-row:hover{ background: #fafaf8; }
+  .group-row .chev{ color: var(--teal); }
+  .group-block.month > .group-row{ background: var(--teal-soft); padding-left:8px; padding-right:8px; }
+  .group-block.week > .group-row{ background: #fbfaf7; padding-left:6px; padding-right:6px; }
+  .group-title{ display:flex; flex-direction:column; gap:1px; flex:1 1 140px; min-width:120px; }
+  .group-title .name{ font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:12.5px; }
+  .group-title .range{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; color: var(--slate-light); }
+  .group-nums{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .group-nums .wt-change{ font-family:'Space Grotesk', sans-serif; font-weight:700; font-size:13.5px; }
+  .group-nums .wt-change.down{ color: var(--teal); }
+  .group-nums .wt-change.up{ color: var(--red); }
+  .group-nums .avg{ font-family:'IBM Plex Mono', monospace; font-size:10px; color: var(--slate); text-align:right; }
+  .group-detail{ display:none; padding: 2px 0 8px 14px; border-left: 2px solid var(--border); margin-left:6px; }
+  .group-block.open > .group-detail{ display:block; }
+  .group-block.open > .group-row .chev{ transform: rotate(90deg); }
+
+  /* Energy balance */
+  .deficit-badge{
+    font-family:'IBM Plex Mono', monospace; font-size:10.5px; font-weight:600;
+    padding: 2px 7px; border-radius: 10px; white-space:nowrap;
+  }
+  .deficit-badge.green{ background: var(--teal-soft); color: var(--teal); }
+  .deficit-badge.yellow{ background: var(--amber-soft); color: var(--amber); }
+  .deficit-badge.red{ background: #f7e6e0; color: var(--red); }
+  .energy-panel{ margin-top:8px; padding-top:8px; border-top: 1px dashed var(--border); }
+  .energy-row{ display:flex; justify-content:space-between; font-size:11.5px; padding:2px 0; color: var(--slate); }
+  .energy-row b{ color: var(--ink); }
+  .energy-flex{ display:flex; align-items:center; gap:14px; }
+  .donut-wrap{ position:relative; width:22px; height:22px; flex-shrink:0; }
+  .donut-figure{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+  .energy-caveat{ font-size:9.5px; color: var(--slate-light); font-style:italic; margin-top:6px; }
+
+  #entriesWrap{ width:100%; }
+  .entry-steps{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color: var(--slate); flex:0 0 auto; }
+
+  #chartPanelBody{ overflow:hidden; max-height:300px; transition: max-height 0.2s ease; }
+  #chartPanelBody.collapsed{ max-height:0; }
+  .panel-chev.rot{ transform: rotate(-90deg); }
+
+  .day-summary{ margin-top:8px; padding-top:8px; border-top: 1px dashed var(--border); }
+  .day-summary .ds-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+  .day-summary .ds-label{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; text-transform:uppercase; letter-spacing:0.6px; color: var(--slate-light); }
+  .day-summary .ds-frozen{ font-family:'IBM Plex Mono', monospace; font-size:9px; color: var(--teal); background: var(--teal-soft); padding:1px 6px; border-radius:8px; }
+  .day-summary .ds-list{ margin:0; padding-left:16px; font-size:12px; line-height:1.5; color: var(--ink); }
+  .day-summary .ds-list li{ margin-bottom:4px; }
+  .day-summary .ds-list li::marker{ color: var(--teal); }
+  .day-summary .ds-empty{ font-size:11.5px; color: var(--slate-light); font-style:italic; }
+
+  .empty{ text-align:center; padding: 30px 10px; color: var(--slate-light); font-size:13px; }
+  .footnote{ font-family:'IBM Plex Mono', monospace; font-size:9.5px; color: var(--slate-light); text-align:center; margin-top:10px; }
+
+  @media (max-width: 420px){
+    .stat-row{ grid-template-columns: repeat(2,1fr); }
+    .entry-row, .group-row{ gap:5px 8px; font-size:0.95em; }
+    .macro-bar{ flex-basis:70px; }
+  }
+  @media (orientation: landscape) and (max-width: 900px){
+    .wrap{ max-width: 720px; }
+    .stat-row{ grid-template-columns: repeat(5,1fr); }
+  }
+
+/* Day/Night mode */
+body.night-mode{
+  --bg:#0b1220;
+  --panel:#111827;
+  --ink:#f3f4f6;
+  --slate:#b8c2d1;
+  --slate-light:#8e9aab;
+  --border:#263247;
+  --teal:#19a7a5;
+  --teal-soft:#123b3b;
+  --amber:#e0a23a;
+  --amber-soft:#3a2d17;
+  --red:#e06b58;
+  --shadow:0 1px 2px rgba(0,0,0,.28),0 4px 14px rgba(0,0,0,.20);
+}
+body.night-mode .entry-row:hover,
+body.night-mode .group-row:hover{background:#172033;}
+body.night-mode .group-block.month > .group-row{background:#123b3b;}
+body.night-mode .group-block.week > .group-row{background:#151e2d;}
+body.night-mode .deficit-badge.red{background:#3b211d;}
+body.night-mode .macro-bar .o{background:#3a2d17;}
+body.night-mode .weight-line{stroke:var(--ink);}
+body.night-mode .weight-dot{fill:var(--panel);stroke:var(--ink);}
+body.night-mode .weight-dot.last{fill:var(--teal);stroke:var(--teal);}
+body.night-mode .grid-line{stroke:var(--border);}
+body.night-mode .target-line{stroke:var(--teal);}
+.theme-toggle{
+  border:1px solid var(--border);
+  background:var(--panel);
+  color:var(--ink);
+  border-radius:999px;
+  padding:7px 11px;
+  font:inherit;
+  font-size:12px;
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  flex:0 0 auto;
+}
+.theme-toggle:active{transform:scale(.98);}
+
+
+/* Actions */
+.actions-panel{
+  margin:0 0 16px;
+  padding:20px 22px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:var(--panel);
+  box-shadow:var(--shadow);
+}
+.actions-grid{
+  display:grid;
+  grid-template-columns:minmax(190px, 0.9fr) minmax(320px, 1.5fr);
+  gap:22px;
+  align-items:center;
+}
+.actions-left{min-width:0;}
+.actions-kicker{
+  color:var(--teal);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+.actions-main{
+  font-family:'Space Grotesk',sans-serif;
+  font-size:24px;
+  line-height:1.12;
+  font-weight:600;
+  color:var(--ink);
+  margin:0 0 8px;
+}
+.actions-sub{
+  color:var(--slate);
+  font-size:13px;
+  line-height:1.45;
+  margin-bottom:12px;
+}
+.actions-link{white-space:nowrap;
+  color:var(--teal);
+  white-space:nowrap;
+  display:inline-flex;
+  font-size:14px;
+  font-weight:600;
+  text-decoration:none;
+  white-space:nowrap;
+  align-items:center;
+  gap:6px;
+}
+.actions-link.disabled{cursor:default;}
+.actions-link:hover{text-decoration:underline;}
+.actions-icon{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--teal-soft);
+  display:flex;align-items:center;justify-content:center;
+  font-size:30px;
+  margin-bottom:10px;
+}
+.action-flow{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  align-items:start;
+  gap:0;
+  min-width:0;
+}
+.action-step{
+  position:relative;
+  text-align:center;
+  min-width:0;
+}
+.action-step:not(:last-child)::after{
+  content:"";
+  position:absolute;
+  top:21px;
+  left:50%;
+  width:100%;
+  height:2px;
+  background:var(--border);
+  z-index:0;
+}
+.action-step.done:not(:last-child)::after,
+.action-step.current:not(:last-child)::after{
+  background:var(--teal);
+}
+.action-node{
+  width:44px;height:44px;border-radius:50%;
+  margin:0 auto 8px;
+  border:1.5px solid var(--border);
+  background:var(--panel);
+  color:var(--slate-light);
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:1;
+  font-size:20px;
+}
+.action-step.done .action-node{
+  border-color:var(--teal);
+  color:var(--teal);
+}
+.action-step.current .action-node{
+  border:2px solid var(--teal);
+  color:var(--ink);
+  box-shadow:0 0 0 4px var(--teal-soft);
+}
+.action-step.current .action-label{color:var(--teal);font-weight:600;}
+.action-label{
+  font-size:12px;
+  line-height:1.25;
+  color:var(--slate);
+}
+@media(max-width:720px){
+  .actions-panel{padding:18px 16px;}
+  .actions-grid{grid-template-columns:1fr;gap:18px;}
+  .actions-left{display:grid;grid-template-columns:64px 1fr;column-gap:14px;align-items:center;}
+  .actions-icon{grid-row:1 / span 3;margin:0;}
+  .actions-kicker{margin:0 0 4px;}
+  .actions-main{font-size:21px;margin:0 0 4px;}
+  .actions-sub{margin:0 0 5px;font-size:12px;}
+  .actions-link{font-size:13px;white-space:nowrap;}
+}
+@media(max-width:420px){
+  .action-label{font-size:10px;}
+  .action-node{width:38px;height:38px;font-size:17px;}
+  .action-step:not(:last-child)::after{top:18px;}
+}
+body.night-mode .actions-panel{background:var(--panel);}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="dash-header">
+    <div style="display:flex;align-items:baseline;gap:10px;min-width:0;">
+      <h1 id="appTitle">Sujit's Weight Loss journey</h1>
+      <span id="appMeta" class="tag"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;">
+      <button id="notifyToggle" class="theme-toggle" type="button" aria-label="Enable reminders">
+        <span id="notifyIcon">🔔</span><span id="notifyLabel">Reminders</span>
+      </button>
+      <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle day and night mode">
+        <span id="themeIcon">☾</span><span id="themeLabel">Night</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="actionsPanel" class="actions-panel"></div>
+
+  <div class="stat-row" id="statRow"></div>
+
+  <div class="panel">
+    <div class="panel-head" style="cursor:pointer;" onclick="document.getElementById('chartPanelBody').classList.toggle('collapsed'); this.querySelector('.panel-chev').classList.toggle('rot')">
+      <h2><span class="panel-chev" style="display:inline-block;transition:transform .15s;">▾</span> Weight Trend</h2>
+      <span class="meta" id="chartMeta"></span>
+    </div>
+    <div id="chartPanelBody"><div id="chartWrap"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h2>Daily Log</h2><span class="meta">tap a row to expand</span></div>
+    <div id="entriesWrap"></div>
+  </div>
+
+  <div class="footnote">Saved to your account · persists across sessions</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// Cloud storage adapter for Weight Tracker v1. Uses the browser-safe Supabase publishable key.
+window.WT_SUPABASE_URL = "https://ntriwwwryekrmaixhiko.supabase.co";
+window.WT_SUPABASE_KEY = "sb_publishable_vvpTUIf9SZI83bak-LH9qw_UZalJAss";
+const WT_SUPABASE = window.supabase.createClient(window.WT_SUPABASE_URL, window.WT_SUPABASE_KEY);
+window.storage = {
+  // Supabase is the source of truth. A failed read MUST NOT fall back
+  // to stale local/seed data or trigger a write back to the database.
+  async get(key) {
+    const { data, error } = await WT_SUPABASE
+      .from('weight_tracker')
+      .select('payload, updated_at')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) throw new Error(`Supabase read failed: ${error.message}`);
+    if (!data) throw new Error('Supabase tracker record not found.');
+
+    const payload = data.payload || {};
+    return Object.prototype.hasOwnProperty.call(payload, key)
+      ? { value: payload[key], updated_at: data.updated_at }
+      : null;
+  },
+
+  // Explicit writes are still supported, but only callers that intentionally
+  // modify tracker data should invoke this. Normal page loading never writes.
+  async set(key, value) {
+    const { data, error } = await WT_SUPABASE
+      .from('weight_tracker')
+      .select('payload')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if (error) throw new Error(`Supabase read before write failed: ${error.message}`);
+    if (!data) throw new Error('Supabase tracker record not found.');
+
+    const payload = data.payload || {};
+    payload[key] = value;
+
+    const { error: upsertError } = await WT_SUPABASE
+      .from('weight_tracker')
+      .upsert({ id: 1, payload, updated_at: new Date().toISOString() });
+
+    if (upsertError) throw new Error(`Supabase write failed: ${upsertError.message}`);
+    return true;
+  }
+};
+</script>
+<script>
+const STORAGE_KEY = 'weight-log-entries-v4';
+const LEGACY_KEY = 'weight-log-entries-v3';
+const WEEK_SUMMARY_KEY = 'weight-log-week-summaries';
+const TARGET = 85;
+
+// Estimated maintenance calories from weight (Mifflin-St Jeor + light activity).
+// Age/height assumed since not on file — adjust ASSUMED_AGE if known precisely.
+const USER_AGE = 37; // confirmed
+const HEIGHT_CM = 172;
+function estimateMaintenance(weightKg){
+  const bmr = 10*weightKg + 6.25*HEIGHT_CM - 5*USER_AGE + 5;
+  return Math.round(bmr * 1.3); // light activity multiplier
+}
+function estimateStepsBurn(steps, weightKg){
+  if(steps === null || steps === undefined) return 0;
+  return Math.round(steps * 0.00057 * weightKg);
+}
+
+// Classify deficit: red = surplus (warning), yellow = too small or too aggressive, green = healthy sustainable range
+function classifyDeficit(deficit){
+  if(deficit < 0) return { level:'red', color:'var(--red)', label:'Surplus' };
+  if(deficit < 300) return { level:'yellow', color:'var(--amber)', label:'Minimal deficit' };
+  if(deficit <= 1000) return { level:'green', color:'var(--teal)', label:'Healthy deficit' };
+  return { level:'yellow', color:'var(--amber)', label:'Aggressive deficit' };
+}
+
+function donutSVG(pct, color){
+  const r = 34, sw = 12, c = 2*Math.PI*r;
+  const clamped = Math.min(100, Math.max(0, pct));
+  const dash = clamped/100*c;
+  return `<svg width="22" height="22" viewBox="0 0 88 88" style="flex-shrink:0">
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="var(--border)" stroke-width="${sw}"/>
+    <circle cx="44" cy="44" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+      stroke-dasharray="${dash.toFixed(1)} ${(c-dash).toFixed(1)}" stroke-linecap="round" transform="rotate(-90 44 44)"/>
+  </svg>`;
+}
+
+// Historical entries are loaded exclusively from Supabase.
+// Do not hardcode tracker history here: Supabase is the persistent source of truth.
+const SEED = [];
+
+
+// New/updated entries land here — merged into storage on every load (upsert by date).
+// This is how entries get added going forward: append here, weight can be logged
+// ahead of food (calories/protein/dietCoke as null = "pending").
+// No hardcoded daily updates.
+// Daily entries must come from Supabase so the PWA cannot overwrite newer data
+// with an older copy embedded in the HTML.
+const ENTRY_UPDATES = [];
+
+
+// Week-level summaries, keyed by the first day's date in that week (chronological, chunked every 7 entries).
+// Freezes when the 7th day of the week is closed — until then it's a running draft.
+const WEEK_SUMMARY_UPDATES = [
+  { weekStart: '2026-08-03', points: [
+      'Weight: 95.5 → 93.8kg, down 1.7kg — take this with a grain of salt. Week 1 always moves fast on water and glycogen, not fat. Don\'t expect this pace to hold.',
+      'Execution was mostly solid: calories generally landed in range, protein was consistently strong.',
+      'Real improvement late in the week: logging meals as they happen instead of reconstructing them after — that habit matters more than the scale right now.',
+      'Weak spot flagged mid-week: reduced steps. It got corrected on day 7 with 10.5k steps — good response, but one strong day doesn\'t undo a pattern. Week 2 needs to show this wasn\'t a one-off.',
+      'Don\'t get discouraged if the scale ticks up before it settles again — that\'s sodium and water catching up, not failure.'
+    ], frozen: true },
+];
+
+async function loadWeekSummaries(){
+  const res = await window.storage.get(WEEK_SUMMARY_KEY);
+  if(!res || !res.value) return {};
+  try{
+    // Supabase JSONB may already be a native JS object.
+    return typeof res.value === 'string' ? JSON.parse(res.value) : res.value;
+  }catch(e){
+    throw new Error('Supabase week-summary data is invalid.');
+  }
+}
+
+async function loadEntries(){
+  // Strict source-of-truth rule:
+  // 1) Read the current tracker from Supabase.
+  // 2) If the read fails, stop. Never fall back to stale embedded data.
+  // 3) Never write during page initialization.
+  const res = await window.storage.get(STORAGE_KEY);
+  if(!res || !res.value) return [];
+
+  try{
+    // Supabase JSONB may already be returned as a native JS array/object.
+    // Only JSON.parse when the value is actually a string.
+    const entries = typeof res.value === 'string' ? JSON.parse(res.value) : res.value;
+    if(!Array.isArray(entries)) throw new Error('Tracker entries are not an array.');
+    return entries;
+  }catch(e){
+    throw new Error(`Supabase tracker data is invalid: ${e.message}`);
+  }
+}
+
+
+function getTodayLocalISO(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function mealNames(entry){
+  return Array.isArray(entry?.meals)
+    ? entry.meals.map(m => String(m?.name || '').trim().toLowerCase())
+    : [];
+}
+
+function renderActions(entries){
+  const el=document.getElementById('actionsPanel');
+  if(!el) return;
+
+  const today=getTodayLocalISO();
+  const entry=entries.find(e=>e.date===today) || entries[entries.length-1];
+  const meals=mealNames(entry);
+  const hasWeight=!!entry && entry.weight!==null && entry.weight!==undefined;
+  const hasBreakfast=meals.includes('breakfast');
+  const hasLunch=meals.includes('lunch');
+  const hasDinner=meals.includes('dinner');
+  const frozen=!!entry?.summary?.frozen;
+
+  let current=0, title='What’s your weight today, Sujit?', sub='Start today by logging your morning weight.', icon='⚖️', link='';
+  if(hasWeight){ current=1; title='Log your food'; sub='Your morning weight is logged. Start with breakfast.'; icon='🍽️'; }
+  if(hasBreakfast){ current=2; title='Log your lunch'; sub="Breakfast is logged. You're ready for lunch."; icon='🍴'; }
+  if(hasLunch){ current=3; title='Log your dinner'; sub="You've logged breakfast and lunch."; icon='🍽️'; link="What's for dinner?"; }
+  if(hasDinner){ current=4; title='Day end'; sub="Dinner is logged. Finish the day when you're done."; icon='🏁'; }
+  if(frozen){ current=5; title='Day complete'; sub='Today is finalized and frozen.'; icon='✓'; link=''; }
+
+  const steps=[
+    ['Morning','⚖️'],
+    ['Breakfast','🍳'],
+    ['Lunch','🍴'],
+    ['Dinner','🍽️'],
+    ['Day End','⚑']
+  ];
+  const flow=steps.map((s,i)=>{
+    const state=i<current?'done':(i===current?'current':'');
+    const symbol=i<current?'✓':s[1];
+    return `<div class="action-step ${state}">
+      <div class="action-node">${symbol}</div>
+      <div class="action-label">${s[0]}</div>
+    </div>`;
+  }).join('');
+
+  const linkHtml=link
+    ? `<a class="actions-link" href="chatgpt://">${link} <span>›</span></a>`
+    : '';
+
+  el.innerHTML=`
+    <div class="actions-grid">
+      <div class="actions-left">
+        <div class="actions-icon">${icon}</div>
+        <div class="actions-kicker">Actions</div>
+        <div class="actions-main">${title}</div>
+        <div class="actions-sub">${sub}</div>
+        ${linkHtml}
+      </div>
+      <div class="action-flow">${flow}</div>
+    </div>`;
+}
+
+function renderStats(entries){
+  const el = document.getElementById('statRow');
+  if(!entries.length){ el.innerHTML=''; return; }
+  const first = entries[0], last = entries[entries.length-1];
+  const change = (last.weight - first.weight).toFixed(1);
+
+  // Dashboard averages are for the active Monday–Sunday week only.
+  const now = new Date();
+  const day = now.getDay(); // Sun=0, Mon=1...
+  const monday = new Date(now);
+  monday.setHours(0,0,0,0);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23,59,59,999);
+  const weekEntries = entries.filter(e => {
+    const d = new Date(`${e.date}T00:00:00`);
+    return d >= monday && d <= sunday;
+  });
+  const foodEntries = weekEntries.filter(e => e.calories !== null && e.calories !== undefined);
+  const avgCal = foodEntries.length ? Math.round(foodEntries.reduce((s,e)=>s+e.calories,0)/foodEntries.length) : 0;
+  const avgProt = foodEntries.length ? Math.round(foodEntries.reduce((s,e)=>s+e.protein,0)/foodEntries.length) : 0;
+  const toGo = (last.weight - TARGET).toFixed(1);
+  const cokeEntries = weekEntries.filter(e => e.dietCoke !== null && e.dietCoke !== undefined);
+  const avgCoke = cokeEntries.length ? (cokeEntries.reduce((s,e)=>s+e.dietCoke,0)/cokeEntries.length).toFixed(1) : null;
+  const stepEntries = weekEntries.filter(e => e.steps !== null && e.steps !== undefined);
+  const avgSteps = stepEntries.length ? Math.round(stepEntries.reduce((s,e)=>s+e.steps,0)/stepEntries.length) : null;
+  const weekDayCount = Math.max(weekEntries.length,1);
+
+  el.innerHTML = `
+    <div class="stat-card"><div class="lbl">Current</div><div class="val">${last.weight}<span style="font-size:11px;color:var(--slate-light)">kg</span></div><div class="sub">${change<=0?'':'+'}${change} kg total</div></div>
+    <div class="stat-card"><div class="lbl">To Target</div><div class="val teal">${toGo}<span style="font-size:11px">kg</span></div><div class="sub">goal ${TARGET} kg</div></div>
+    <div class="stat-card"><div class="lbl">Avg Calories</div><div class="val amber">${avgCal}</div><div class="sub">${weekDayCount}-day avg</div></div>
+    <div class="stat-card"><div class="lbl">Avg Protein</div><div class="val teal">${avgProt}g</div><div class="sub">${weekDayCount}-day avg</div></div>
+    <div class="stat-card"><div class="lbl">Diet Coke</div><div class="val" style="color:var(--slate)">${avgCoke !== null ? avgCoke : '—'}</div><div class="sub">${avgCoke !== null ? 'avg cans/day' : 'not yet logged'}</div></div>
+    <div class="stat-card"><div class="lbl">Steps</div><div class="val" style="color:var(--slate)">${avgSteps !== null ? avgSteps.toLocaleString() : '—'}</div><div class="sub">${avgSteps !== null ? 'avg/day' : 'not yet logged'}</div></div>
+  `;
+}
+
+function renderChart(entries){
+  const wrap = document.getElementById('chartWrap');
+  document.getElementById('chartMeta').textContent = entries.length ? `${entries[0].label} – ${entries[entries.length-1].label}` : '';
+  if(!entries.length){ wrap.innerHTML='<div class="empty">No entries yet</div>'; return; }
+
+  const w=640,h=200,padL=32,padR=12,padT=12,padB=22;
+  const weights = entries.map(e=>e.weight);
+  const min = Math.floor(Math.min(...weights, TARGET) - 1);
+  const max = Math.ceil(Math.max(...weights) + 1);
+  const n = entries.length;
+  const xStep = n>1 ? (w-padL-padR)/(n-1) : 0;
+  const xy = (i,val) => [padL+i*xStep, padT + (h-padT-padB)*(1-(val-min)/(max-min))];
+
+  let grid='', path='', area=`M${padL},${h-padB} `, dots='', labels='';
+  const steps=4;
+  for(let s=0;s<=steps;s++){
+    const val = min + (max-min)*s/steps;
+    const [,y] = xy(0,val);
+    grid += `<line class="grid-line" x1="${padL}" y1="${y}" x2="${w-padR}" y2="${y}"/><text class="axis-label" x="2" y="${y+3}">${val.toFixed(0)}</text>`;
+  }
+  let targetLine='';
+  if(TARGET>=min && TARGET<=max){
+    const [,ty] = xy(0,TARGET);
+    targetLine = `<line class="target-line" x1="${padL}" y1="${ty}" x2="${w-padR}" y2="${ty}"/><text class="axis-label" x="${w-padR-60}" y="${ty-4}" fill="#0e7c7b">target ${TARGET}kg</text>`;
+  }
+  entries.forEach((e,i)=>{
+    const [x,y]=xy(i,e.weight);
+    path += (i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1)+' ';
+    area += `L${x.toFixed(1)},${y.toFixed(1)} `;
+    dots += `<circle class="weight-dot ${i===n-1?'last':''}" cx="${x}" cy="${y}" r="3.4"/>`;
+    if(i===0||i===n-1||n<=8||i%Math.ceil(n/8)===0){
+      labels += `<text class="axis-label" x="${x}" y="${h-padB+14}" text-anchor="middle">${e.label}</text>`;
+    }
+  });
+  area += `L${padL+(n-1)*xStep},${h-padB} Z`;
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${w} ${h}">
+    <defs><linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b2430" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#1b2430" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}${targetLine}
+    <path class="weight-area" d="${area}"/>
+    <path class="weight-line" d="${path}"/>
+    ${dots}${labels}
+  </svg>`;
+}
+
+function renderDayEntry(e, prev){
+  let deltaHtml = '<span class="entry-delta"></span>';
+  if(prev){
+    const d = (e.weight - prev.weight).toFixed(1);
+    const cls = d<=0 ? 'down':'up';
+    deltaHtml = `<span class="entry-delta ${cls}">${d>0?'+':''}${d}</span>`;
+  }
+  const hasFood = e.calories !== null && e.calories !== undefined;
+  const protCal = hasFood ? e.protein*4 : 0;
+  const protPct = hasFood ? Math.min(100, Math.round((protCal/Math.max(e.calories,1))*100)) : 0;
+  const cokeLine = (e.dietCoke !== null && e.dietCoke !== undefined) ? `<br><span style="color:var(--slate-light)">🥤 ${e.dietCoke} can${e.dietCoke===1?'':'s'}</span>` : '';
+  const numsHtml = hasFood
+    ? `<b>${e.calories}</b> kcal · <b>${e.protein}g</b> P${cokeLine}`
+    : `<span style="color:var(--amber)">food pending</span>${cokeLine}`;
+
+  // Energy balance (maintenance is always estimable from weight; deficit needs food logged)
+  const maintenance = estimateMaintenance(e.weight);
+  const stepsBurn = estimateStepsBurn(e.steps, e.weight);
+  const totalBurn = maintenance + stepsBurn;
+  let deficitBadge = '';
+  let energyPanel = '';
+  if(hasFood){
+    const deficit = totalBurn - e.calories;
+    const cls = classifyDeficit(deficit);
+    deficitBadge = `<span class="deficit-badge ${cls.level}">${deficit>=0?'−':'+'}${Math.abs(deficit)} kcal</span>`;
+    const pct = Math.round((e.calories/totalBurn)*100);
+    energyPanel = `
+      <div class="energy-panel">
+        <div class="energy-flex">
+          <div class="donut-figure">
+            <div class="donut-wrap">${donutSVG(pct, cls.color)}</div>
+            <div>
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;color:${cls.color};line-height:1.1">${deficit>=0?'−':'+'}${Math.abs(deficit)} kcal</div>
+              <div style="font-size:9px;color:var(--slate-light)">${cls.label}</div>
+            </div>
+          </div>
+          <div style="flex:1">
+            <div class="energy-row"><span>Est. maintenance (${e.weight}kg)</span><b>${maintenance} kcal</b></div>
+            ${e.steps ? `<div class="energy-row"><span>+ Steps burn (${e.steps.toLocaleString()})</span><b>+${stepsBurn} kcal</b></div>` : ''}
+            <div class="energy-row"><span>Food intake</span><b>${e.calories} kcal</b></div>
+          </div>
+        </div>
+        <div class="energy-caveat">Estimated — age ${USER_AGE}, assumes light activity baseline (excl. logged steps)</div>
+      </div>`;
+  }
+
+  let detail = hasFood
+    ? '<div class="no-detail">No itemised meal breakdown logged for this day.</div>'
+    : '<div class="no-detail">Weight logged — food not yet entered.</div>';
+  if(e.meals && e.meals.length){
+    detail = e.meals.map(m => `
+      <div class="meal-block">
+        <div class="meal-name">${m.name}</div>
+        ${m.items.map(it => `<div class="meal-item"><span class="nm">${it.name}</span><span class="mac">${it.calories} kcal · ${it.protein}g</span></div>`).join('')}
+      </div>`).join('');
+  }
+
+  const progressiveHtml = e.progressiveNarrative && e.progressiveNarrative.length
+    ? `
+      <div class="day-summary">
+        <div class="ds-head">
+          <span class="ds-label">Progressive Notes</span>
+        </div>
+        <ul class="ds-list">${e.progressiveNarrative.map(p=>`<li>${p}</li>`).join('')}</ul>
+      </div>`
+    : '';
+
+  const summaryHtml = `
+    <div class="day-summary">
+      <div class="ds-head">
+        <span class="ds-label">Day Summary</span>
+        ${e.summary && e.summary.frozen ? '<span class="ds-frozen">🔒 Frozen</span>' : ''}
+      </div>
+      ${e.summary && e.summary.points && e.summary.points.length ? `<ul class="ds-list">${e.summary.points.map(p=>`<li>${p}</li>`).join('')}</ul>` : '<div class="ds-empty">No comments yet for this day.</div>'}
+    </div>`;
+
+  return `<div class="entry">
+    <div class="entry-row" onclick="this.parentElement.classList.toggle('open')">
+      <span class="chev">▸</span>
+      <span class="entry-date">${e.label}</span>
+      <span class="entry-wt">${e.weight}</span>
+      ${deltaHtml}
+      <span class="macro-bar"><span class="p" style="width:${protPct}%"></span><span class="o" style="width:${100-protPct}%"></span></span>
+      <span class="entry-steps">${(e.steps!==null && e.steps!==undefined) ? '🚶'+e.steps.toLocaleString() : '—'}</span>
+      ${deficitBadge}
+      <span class="entry-nums">${numsHtml}</span>
+    </div>
+    <div class="entry-detail">${detail}${energyPanel}${progressiveHtml}${summaryHtml}</div>
+  </div>`;
+}
+
+function summarize(group){
+  const first = group[0], last = group[group.length-1];
+  const change = (last.weight - first.weight).toFixed(1);
+  const foodGroup = group.filter(e => e.calories !== null && e.calories !== undefined);
+  const avgCal = foodGroup.length ? Math.round(foodGroup.reduce((s,e)=>s+e.calories,0)/foodGroup.length) : null;
+  const avgProt = foodGroup.length ? Math.round(foodGroup.reduce((s,e)=>s+e.protein,0)/foodGroup.length) : null;
+  const cokeVals = group.filter(e => e.dietCoke !== null && e.dietCoke !== undefined);
+  const avgCoke = cokeVals.length ? (cokeVals.reduce((s,e)=>s+e.dietCoke,0)/cokeVals.length).toFixed(1) : null;
+  const stepVals = group.filter(e => e.steps !== null && e.steps !== undefined);
+  const avgSteps = stepVals.length ? Math.round(stepVals.reduce((s,e)=>s+e.steps,0)/stepVals.length) : null;
+  return { change, avgCal, avgProt, avgCoke, avgSteps, range: `${first.label} – ${last.label}` };
+}
+
+function renderWeekBlock(weekEntries, weekNum, allEntries, weekSummaries){
+  const s = summarize(weekEntries);
+  const cls = s.change <= 0 ? 'down' : 'up';
+  const firstIdx = allEntries.indexOf(weekEntries[0]);
+  const days = [...weekEntries].reverse().map((e,i)=>{
+    const idx = firstIdx + (weekEntries.length-1-i);
+    const prev = allEntries[idx-1];
+    return renderDayEntry(e, prev);
+  }).join('');
+
+  const wk = weekSummaries[weekEntries[0].date];
+  const weekSummaryHtml = `
+    <div class="day-summary" style="padding:10px 4px 4px;">
+      <div class="ds-head">
+        <span class="ds-label">Week Summary</span>
+        ${wk && wk.frozen ? '<span class="ds-frozen">🔒 Frozen</span>' : (weekEntries.length===7 ? '<span class="ds-frozen" style="color:var(--amber);background:var(--amber-soft)">Awaiting day 7 close</span>' : '')}
+      </div>
+      ${wk && wk.points && wk.points.length ? `<ul class="ds-list">${wk.points.map(p=>`<li>${p}</li>`).join('')}</ul>` : '<div class="ds-empty">No week summary yet.</div>'}
+    </div>`;
+
+  return `<div class="group-block week">
+    <div class="group-row" onclick="this.parentElement.classList.toggle('open')">
+      <span class="chev">▸</span>
+      <div class="group-title"><span class="name">Week ${weekNum}</span><span class="range">${s.range}</span></div>
+      <div class="group-nums">
+        <span class="wt-change ${cls}">${s.change>0?'+':''}${s.change} kg</span>
+        <span class="avg">${s.avgCal!==null?`${s.avgCal} kcal · ${s.avgProt}g P`:'food pending'}<br>7-day avg${s.avgCoke!==null?` · 🥤${s.avgCoke}/day`:''}${s.avgSteps!==null?` · 🚶${s.avgSteps.toLocaleString()}`:''}</span>
+      </div>
+    </div>
+    <div class="group-detail">${days}${weekSummaryHtml}</div>
+  </div>`;
+}
+
+function chunk(arr, size){
+  const out = [];
+  for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
+  return out;
+}
+
+function renderEntries(entries, weekSummaries){
+  const wrap = document.getElementById('entriesWrap');
+  if(!entries.length){ wrap.innerHTML = '<div class="empty">No entries logged yet.</div>'; return; }
+
+  const weekChunks = chunk(entries, 7);              // chronological, index 0 = Week 1
+  const completeWeeks = weekChunks.filter(w => w.length === 7);
+  const partialWeek = weekChunks.length && weekChunks[weekChunks.length-1].length < 7
+    ? weekChunks[weekChunks.length-1] : null;
+
+  const monthChunks = chunk(completeWeeks, 4);        // group every 4 complete weeks into a month
+  const completeMonths = monthChunks.filter(m => m.length === 4);
+  const leftoverWeeks = monthChunks.length && monthChunks[monthChunks.length-1].length < 4
+    ? monthChunks[monthChunks.length-1] : [];
+
+  const blocksHtml = [];
+
+  // Months (chronological), each containing its 4 weeks
+  completeMonths.forEach((monthWeeks, mi) => {
+    const monthNum = mi + 1;
+    const flat = monthWeeks.flat();
+    const s = summarize(flat);
+    const cls = s.change <= 0 ? 'down' : 'up';
+    const weeksHtml = monthWeeks.map((wk, wi) => renderWeekBlock(wk, monthNum*4 - 4 + wi + 1, entries, weekSummaries)).join('');
+    blocksHtml.push(`<div class="group-block month">
+      <div class="group-row" onclick="this.parentElement.classList.toggle('open')">
+        <span class="chev">▸</span>
+        <div class="group-title"><span class="name">Month ${monthNum}</span><span class="range">${s.range}</span></div>
+        <div class="group-nums">
+          <span class="wt-change ${cls}">${s.change>0?'+':''}${s.change} kg</span>
+          <span class="avg">${s.avgCal!==null?`${s.avgCal} kcal · ${s.avgProt}g P`:'food pending'}<br>28-day avg${s.avgCoke!==null?` · 🥤${s.avgCoke}/day`:''}${s.avgSteps!==null?` · 🚶${s.avgSteps.toLocaleString()}`:''}</span>
+        </div>
+      </div>
+      <div class="group-detail">${weeksHtml}</div>
+    </div>`);
+  });
+
+  // Leftover complete weeks not yet part of a month
+  leftoverWeeks.forEach((wk, wi) => {
+    const weekNum = completeMonths.length*4 + wi + 1;
+    blocksHtml.push(renderWeekBlock(wk, weekNum, entries, weekSummaries));
+  });
+
+  // Partial current week: show as plain individual days, no summary wrapper
+  if(partialWeek){
+    const firstIdx = entries.indexOf(partialWeek[0]);
+    partialWeek.forEach((e,i) => {
+      const idx = firstIdx + i;
+      blocksHtml.push(renderDayEntry(e, entries[idx-1]));
+    });
+  }
+
+  wrap.innerHTML = blocksHtml.reverse().join(''); // newest block first
+}
+
+async function init(){
+  try{
+    const entries = await loadEntries();
+    const weekSummaries = await loadWeekSummaries();
+    entries.sort((a,b)=> new Date(a.date)-new Date(b.date));
+    renderActions(entries);
+    renderStats(entries);
+    renderChart(entries);
+    renderEntries(entries, weekSummaries);
+  }catch(e){
+    console.error('[Weight Tracker] sync error:', e);
+    document.getElementById('statRow').innerHTML = `
+      <div class="panel" style="grid-column:1/-1;margin:0;">
+        <strong>Sync unavailable</strong>
+        <div style="margin-top:6px;color:var(--slate);font-size:12px;">
+          The tracker could not read the latest data from Supabase.
+          Your database was not overwritten.
+        </div>
+        <div style="margin-top:6px;color:var(--slate-light);font-size:10px;">
+          ${String(e.message || e)}
+        </div>
+      </div>`;
+    document.getElementById('chartWrap').innerHTML = '<div class="empty">Waiting for Supabase sync…</div>';
+    document.getElementById('entriesWrap').innerHTML = '<div class="empty">No stale data loaded.</div>';
+  }
+}
+
+async function loadAppConfig(){
+  try{
+    const { data, error } = await WT_SUPABASE
+      .from('weight_tracker')
+      .select('payload')
+      .eq('id', 1)
+      .maybeSingle();
+
+    if(error || !data) return;
+
+    const cfg = data.payload && data.payload['weight-tracker-config'];
+    if(!cfg) return;
+
+    const title = cfg.appTitle ?? '[z]';
+    const version = cfg.version ?? '';
+    const labels = Array.isArray(cfg.labels) ? cfg.labels.filter(Boolean) : [];
+
+    const titleEl = document.getElementById('appTitle');
+    const metaEl = document.getElementById('appMeta');
+
+    if(titleEl) titleEl.textContent = title;
+    if(metaEl) metaEl.textContent = [version, ...labels].filter(Boolean).join(' · ');
+  }catch(e){
+    console.warn('[Weight Tracker] config read failed:', e);
+  }
+}
+loadAppConfig();
+
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+</script>
+
+
+
+
+<script>
+(function(){
+  const btn=document.getElementById('notifyToggle');
+  const label=document.getElementById('notifyLabel');
+  const icon=document.getElementById('notifyIcon');
+  const LS='weight-tracker-notifications-enabled';
+  function paint(on){
+    if(icon) icon.textContent=on?'🔔':'🔕';
+    if(label) label.textContent=on?'On':'Reminders';
+    if(btn) btn.setAttribute('aria-label',on?'Disable reminders':'Enable reminders');
+  }
+  async function getMessage(){
+    const {data,error}=await WT_SUPABASE.from('weight_tracker').select('payload').eq('id',1).maybeSingle();
+    if(error) throw error;
+    const msgs=(data?.payload?.['notification-messages']||[]).filter(x=>x && x.active && x.text);
+    if(!msgs.length) throw new Error('No active notification messages');
+    return msgs[Math.floor(Math.random()*msgs.length)].text;
+  }
+  async function showReminder(){
+    const msg=await getMessage();
+    if('serviceWorker' in navigator){
+      const reg=await navigator.serviceWorker.ready;
+      await reg.showNotification('Sujit’s Weight Loss journey',{body:msg,tag:'weight-tracker-reminder',renotify:true});
+    }else{
+      new Notification('Sujit’s Weight Loss journey',{body:msg,tag:'weight-tracker-reminder'});
+    }
+  }
+  function scheduleFallback(){
+    clearTimeout(window.__wtNotificationTimer);
+    if(localStorage.getItem(LS)!=='1' || Notification.permission!=='granted') return;
+    const delay=(2*60*60*1000)+Math.random()*(2*60*60*1000);
+    window.__wtNotificationTimer=setTimeout(async()=>{
+      try{ await showReminder(); }catch(e){ console.warn('Reminder failed',e); }
+      scheduleFallback();
+    },delay);
+  }
+  async function enable(){
+    if(!('Notification' in window)){ alert('Notifications are not supported on this device/browser.'); return; }
+    try{
+      let permission=Notification.permission;
+      if(permission!=='granted') permission=await Notification.requestPermission();
+      if(permission!=='granted'){
+        paint(false);
+        alert('Notification permission was not granted. Please allow notifications for this site in Android/browser settings, then tap Reminders again.');
+        return;
+      }
+      localStorage.setItem(LS,'1');
+      paint(true);
+      if('serviceWorker' in navigator){
+        const reg=await navigator.serviceWorker.ready;
+        if(reg.periodicSync){
+          try{ await reg.periodicSync.register('weight-tracker-notifications',{minInterval:2*60*60*1000}); }catch(e){ console.warn('Periodic sync unavailable',e); }
+        }
+      }
+      await showReminder();
+      scheduleFallback();
+    }catch(e){
+      console.error('Notification setup failed',e);
+      alert('Could not enable reminders: '+(e?.message||e));
+    }
+  }
+  function disable(){
+    localStorage.removeItem(LS);
+    clearTimeout(window.__wtNotificationTimer);
+    paint(false);
+  }
+  async function toggle(){
+    if(localStorage.getItem(LS)==='1') disable(); else await enable();
+  }
+  if(localStorage.getItem(LS)==='1' && Notification.permission==='granted') paint(true); else paint(false);
+  btn?.addEventListener('click',toggle);
+})();
+</script>
+<script>
+(function(){
+  const key='weight-tracker-theme';
+  const btn=document.getElementById('themeToggle');
+  const icon=document.getElementById('themeIcon');
+  const label=document.getElementById('themeLabel');
+  function applyTheme(mode){
+    const night=mode==='night';
+    document.body.classList.toggle('night-mode',night);
+    if(icon) icon.textContent=night?'☀':'☾';
+    if(label) label.textContent=night?'Day':'Night';
+    if(btn) btn.setAttribute('aria-label',night?'Switch to day mode':'Switch to night mode');
+  }
+  applyTheme(localStorage.getItem(key)||'day');
+  if(btn) btn.addEventListener('click',function(){
+    const next=document.body.classList.contains('night-mode')?'day':'night';
+    localStorage.setItem(key,next);
+    applyTheme(next);
+  });
+})();
+</script>
+</body>
+</html>
