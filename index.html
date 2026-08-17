@@ -292,6 +292,13 @@ body.night-mode .target-line{stroke:var(--teal);}
 }
 .actions-link.disabled{cursor:default;}
 .actions-link:hover{text-decoration:underline;}
+.actions-milestones{margin:12px 0 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 0;}
+.action-metric{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:12px;}
+.action-metric span{color:var(--slate);}
+.action-metric b{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
+.actions-total{margin:10px 0 12px;padding:10px 12px;background:var(--teal-soft);border-radius:10px;}
+.actions-total-head{font-size:11px;font-weight:600;color:var(--teal);margin-bottom:5px;}
+.actions-total-head span{display:block;font-size:9px;font-weight:400;color:var(--slate-light);margin-top:2px;}
 .actions-icon{
   width:64px;height:64px;border-radius:50%;
   background:var(--teal-soft);
@@ -570,54 +577,68 @@ function renderActions(entries){
   if(!el) return;
 
   const today=getTodayLocalISO();
-  const entry=entries.find(e=>e.date===today) || entries[entries.length-1];
-  const meals=mealNames(entry);
+  const entry=entries.find(e=>e.date===today) || null;
+  const meals=Array.isArray(entry?.meals) ? entry.meals : [];
+  const mealNamesLower=meals.map(m=>String(m?.name||'').trim().toLowerCase());
   const hasWeight=!!entry && entry.weight!==null && entry.weight!==undefined;
-  const hasBreakfast=meals.includes('breakfast');
-  const hasLunch=meals.includes('lunch');
-  const hasDinner=meals.includes('dinner');
+  const hasBreakfast=mealNamesLower.includes('breakfast');
+  const hasLunch=mealNamesLower.includes('lunch');
+  const hasDinner=mealNamesLower.includes('dinner');
   const frozen=!!entry?.summary?.frozen;
 
-  let current=0, title='What’s your weight today, Sujit?', sub='Start today by logging your morning weight.', icon='⚖️', link='';
-  if(hasWeight){ current=1; title='Log your food'; sub='Your morning weight is logged. Start with breakfast.'; icon='🍽️'; }
-  if(hasBreakfast){ current=2; title='Log your lunch'; sub="Breakfast is logged. You're ready for lunch."; icon='🍴'; }
-  if(hasLunch){ current=3; title='Log your dinner'; sub="You've logged breakfast and lunch."; icon='🍽️'; link="What's for dinner?"; }
-  if(hasDinner){ current=4; title='Day end'; sub="Dinner is logged. Finish the day when you're done."; icon='🏁'; }
+  const allItems=meals.flatMap(m=>Array.isArray(m?.items)?m.items:[]);
+  const calcCalories=allItems.reduce((sum,it)=>sum+(Number(it?.calories)||0),0);
+  const calcProtein=allItems.reduce((sum,it)=>sum+(Number(it?.protein)||0),0);
+  const storedCalories=entry?.calories!==null && entry?.calories!==undefined ? Number(entry.calories) : null;
+  const storedProtein=entry?.protein!==null && entry?.protein!==undefined ? Number(entry.protein) : null;
+  const totalCalories=calcCalories>0 ? calcCalories : (storedCalories ?? 0);
+  const totalProtein=calcProtein>0 ? calcProtein : (storedProtein ?? 0);
+
+  let current=0, title='Log your morning weight', sub='Today: '+today, icon='⚖️', link='';
+  if(hasWeight){ current=1; title='Log your food'; sub='Morning weight: '+entry.weight+' kg'; icon='🍽️'; }
+  if(hasBreakfast){ current=2; title='Log your lunch'; sub='Breakfast is logged.'; icon='🍴'; }
+  if(hasLunch){ current=3; title='Log your dinner'; sub='Lunch is logged. Dinner is next.'; icon='🍽️'; link="What's for dinner?"; }
+  if(hasDinner){ current=4; title='Day end'; sub='Dinner is logged. Finish the day when you’re done.'; icon='🏁'; }
   if(frozen){ current=5; title='Day complete'; sub='Today is finalized and frozen.'; icon='✓'; link=''; }
 
-  const steps=[
-    ['Morning','⚖️'],
-    ['Breakfast','🍳'],
-    ['Lunch','🍴'],
-    ['Dinner','🍽️'],
-    ['Day End','⚑']
-  ];
+  const steps=[['Morning','⚖️'],['Breakfast','🍳'],['Lunch','🍴'],['Dinner','🍽️'],['Day End','⚑']];
   const flow=steps.map((s,i)=>{
     const state=i<current?'done':(i===current?'current':'');
     const symbol=i<current?'✓':s[1];
-    return `<div class="action-step ${state}">
-      <div class="action-node">${symbol}</div>
-      <div class="action-label">${s[0]}</div>
-    </div>`;
+    return `<div class="action-step ${state}"><div class="action-node">${symbol}</div><div class="action-label">${s[0]}</div></div>`;
   }).join('');
 
-  const linkHtml=link
-    ? `<a class="actions-link" href="chatgpt://">${link} <span>›</span></a>`
-    : '';
+  const milestone=(label,value)=>`<div class="action-metric"><span>${label}</span><b>${value}</b></div>`;
+  const totalsHtml=entry && (calcCalories>0 || storedCalories!==null) ? `
+    <div class="actions-total">
+      <div class="actions-total-head">Running total <span>validated from today’s entries</span></div>
+      ${milestone('Calories', `${totalCalories} kcal`)}
+      ${milestone('Protein', `${Math.round(totalProtein*10)/10} g`)}
+    </div>` : '';
+
+  const milestonesHtml=`
+    <div class="actions-milestones">
+      ${milestone('Morning', hasWeight ? `${entry.weight} kg` : '—')}
+      ${milestone('Food · Calories', calcCalories>0 ? `${totalCalories} kcal` : '—')}
+      ${milestone('Food · Protein', calcProtein>0 ? `${Math.round(totalProtein*10)/10} g` : '—')}
+    </div>`;
+
+  const linkHtml=link ? `<a class="actions-link" href="chatgpt://">${link} <span>›</span></a>` : '';
 
   el.innerHTML=`
     <div class="actions-grid">
       <div class="actions-left">
         <div class="actions-icon">${icon}</div>
-        <div class="actions-kicker">Actions</div>
+        <div class="actions-kicker">Actions · ${today}</div>
         <div class="actions-main">${title}</div>
         <div class="actions-sub">${sub}</div>
+        ${milestonesHtml}
+        ${totalsHtml}
         ${linkHtml}
       </div>
       <div class="action-flow">${flow}</div>
     </div>`;
 }
-
 function renderStats(entries){
   const el = document.getElementById('statRow');
   if(!entries.length){ el.innerHTML=''; return; }
@@ -993,10 +1014,21 @@ if ('serviceWorker' in navigator) { window.addEventListener('load',()=>navigator
       new Notification('Sujit’s Weight Loss journey',{body:msg,tag:'weight-tracker-reminder'});
     }
   }
-  function scheduleFallback(){
+  async function getNotificationConfig(){
+    const {data,error}=await WT_SUPABASE.from('weight_tracker').select('payload').eq('id',1).maybeSingle();
+    if(error) throw error;
+    const cfg=data?.payload?.['notification-config']||{};
+    const perHour=Math.max(0.1,Number(cfg.notificationsPerHour)||10);
+    const minMs=Math.max(1000,Math.round(60*60*1000/perHour));
+    return {perHour,minMs};
+  }
+  async function scheduleFallback(){
     clearTimeout(window.__wtNotificationTimer);
     if(localStorage.getItem(LS)!=='1' || Notification.permission!=='granted') return;
-    const delay=(2*60*60*1000)+Math.random()*(2*60*60*1000);
+    let delay=6*60*1000;
+    try{ const cfg=await getNotificationConfig(); delay=cfg.minMs; }catch(e){ console.warn('Notification config read failed; using 10/hour.',e); }
+    const jitter=delay*0.25;
+    delay=Math.max(1000,delay+(Math.random()*2-1)*jitter);
     window.__wtNotificationTimer=setTimeout(async()=>{
       try{ await showReminder(); }catch(e){ console.warn('Reminder failed',e); }
       scheduleFallback();
