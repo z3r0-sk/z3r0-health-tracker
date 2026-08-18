@@ -291,14 +291,48 @@ body.night-mode .target-line{stroke:var(--teal);}
   gap:6px;
 }
 .actions-link.disabled{cursor:default;}
+.actions-date{
+  color:var(--slate);
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  margin:-2px 0 12px;
+}
+.action-milestone-detail{
+  display:block;
+  margin-top:3px;
+  font-size:10px;
+  line-height:1.25;
+  color:var(--slate-light);
+  white-space:normal;
+}
+.action-milestone-detail strong{
+  color:var(--ink);
+  font-weight:600;
+}
+.action-milestone-detail .metric-line{
+  display:block;
+}
+.actions-running-total{
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  align-items:baseline;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:11px;
+  color:var(--slate);
+}
+.actions-running-total strong{
+  color:var(--ink);
+  font-size:13px;
+}
+@media(max-width:720px){
+  .actions-running-total{justify-content:flex-start;}
+}
+
 .actions-link:hover{text-decoration:underline;}
-.actions-milestones{margin:12px 0 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:8px 0;}
-.action-metric{display:flex;justify-content:space-between;gap:12px;padding:4px 0;font-size:12px;}
-.action-metric span{color:var(--slate);}
-.action-metric b{font-family:'IBM Plex Mono',monospace;color:var(--ink);}
-.actions-total{margin:10px 0 12px;padding:10px 12px;background:var(--teal-soft);border-radius:10px;}
-.actions-total-head{font-size:11px;font-weight:600;color:var(--teal);margin-bottom:5px;}
-.actions-total-head span{display:block;font-size:9px;font-weight:400;color:var(--slate-light);margin-top:2px;}
 .actions-icon{
   width:64px;height:64px;border-radius:50%;
   background:var(--teal-soft);
@@ -576,69 +610,112 @@ function renderActions(entries){
   const el=document.getElementById('actionsPanel');
   if(!el) return;
 
+  // Default logging date is always the user's current local date.
+  // A chat instruction can override the date when a specific day is mentioned.
   const today=getTodayLocalISO();
-  const entry=entries.find(e=>e.date===today) || null;
-  const meals=Array.isArray(entry?.meals) ? entry.meals : [];
-  const mealNamesLower=meals.map(m=>String(m?.name||'').trim().toLowerCase());
-  const hasWeight=!!entry && entry.weight!==null && entry.weight!==undefined;
-  const hasBreakfast=mealNamesLower.includes('breakfast');
-  const hasLunch=mealNamesLower.includes('lunch');
-  const hasDinner=mealNamesLower.includes('dinner');
+  const entry=entries.find(e=>e.date===today) || {date:today, meals:[]};
+
+  const meals=Array.isArray(entry.meals) ? entry.meals : [];
+  const mealNamesList=mealNames(entry);
+  const hasWeight=entry.weight!==null && entry.weight!==undefined;
+  const hasBreakfast=mealNamesList.includes('breakfast');
+  const hasLunch=mealNamesList.includes('lunch');
+  const hasDinner=mealNamesList.includes('dinner');
+  const skippedBreakfast=!!(entry?.breakfastSkipped ?? entry?.summary?.breakfastSkipped);
+  const skippedLunch=!!(entry?.lunchSkipped ?? entry?.summary?.lunchSkipped);
+  const skippedDinner=!!(entry?.dinnerSkipped ?? entry?.summary?.dinnerSkipped);
   const frozen=!!entry?.summary?.frozen;
 
-  const allItems=meals.flatMap(m=>Array.isArray(m?.items)?m.items:[]);
-  const calcCalories=allItems.reduce((sum,it)=>sum+(Number(it?.calories)||0),0);
-  const calcProtein=allItems.reduce((sum,it)=>sum+(Number(it?.protein)||0),0);
-  const storedCalories=entry?.calories!==null && entry?.calories!==undefined ? Number(entry.calories) : null;
-  const storedProtein=entry?.protein!==null && entry?.protein!==undefined ? Number(entry.protein) : null;
-  const totalCalories=calcCalories>0 ? calcCalories : (storedCalories ?? 0);
-  const totalProtein=calcProtein>0 ? calcProtein : (storedProtein ?? 0);
+  const breakfastDone = hasBreakfast || skippedBreakfast;
+  const lunchDone = hasLunch || skippedLunch;
+  const dinnerDone = hasDinner || skippedDinner;
 
-  let current=0, title='Log your morning weight', sub='Today: '+today, icon='⚖️', link='';
-  if(hasWeight){ current=1; title='Log your food'; sub='Morning weight: '+entry.weight+' kg'; icon='🍽️'; }
-  if(hasBreakfast){ current=2; title='Log your lunch'; sub='Breakfast is logged.'; icon='🍴'; }
-  if(hasLunch){ current=3; title='Log your dinner'; sub='Lunch is logged. Dinner is next.'; icon='🍽️'; link="What's for dinner?"; }
-  if(hasDinner){ current=4; title='Day end'; sub='Dinner is logged. Finish the day when you’re done.'; icon='🏁'; }
+  // Validate the running total directly from the meal items shown in Daily Log.
+  // Never use entry.calories / entry.protein as the source for this display.
+  const mealTotals = {};
+  let runningCalories = 0;
+  let runningProtein = 0;
+  meals.forEach(m=>{
+    const key=String(m?.name||'').trim().toLowerCase();
+    const items=Array.isArray(m?.items) ? m.items : [];
+    const c=items.reduce((a,x)=>a+Number(x?.calories||0),0);
+    const p=items.reduce((a,x)=>a+Number(x?.protein||0),0);
+    mealTotals[key]={calories:c,protein:p};
+    runningCalories += c;
+    runningProtein += p;
+  });
+
+  const fmtDate = new Date(`${today}T00:00:00`).toLocaleDateString('en-IN',{
+    day:'numeric',month:'short',year:'numeric'
+  });
+
+  let current=0, title='What’s your weight today, Sujit?', sub='Start today by logging your morning weight.', icon='⚖️', link='';
+  if(hasWeight){ current=1; title='Log your food'; sub='Your morning weight is logged. Start with breakfast.'; icon='🍽️'; }
+  if(hasWeight && breakfastDone){ current=2; title='Log your lunch'; sub=skippedBreakfast ? 'Breakfast was skipped. You can log lunch now.' : "Breakfast is logged. You're ready for lunch."; icon='🍴'; }
+  if(hasWeight && breakfastDone && lunchDone){ current=3; title='Log your dinner'; sub=skippedLunch ? 'Lunch was skipped. You can log dinner now.' : "You're ready for dinner."; icon='🍽️'; link="What's for dinner?"; }
+  if(hasWeight && breakfastDone && lunchDone && dinnerDone){ current=4; title='Day end'; sub=skippedDinner ? "Dinner was skipped. Finish the day when you're done." : "Dinner is logged. Finish the day when you're done."; icon='🏁'; link=''; }
   if(frozen){ current=5; title='Day complete'; sub='Today is finalized and frozen.'; icon='✓'; link=''; }
 
-  const steps=[['Morning','⚖️'],['Breakfast','🍳'],['Lunch','🍴'],['Dinner','🍽️'],['Day End','⚑']];
-  const flow=steps.map((s,i)=>{
+  const steps=[
+    ['Morning','⚖️','morning'],
+    ['Breakfast','🍳','breakfast'],
+    ['Lunch','🍴','lunch'],
+    ['Dinner','🍽️','dinner'],
+    ['Day End','⚑','dayend']
+  ];
+
+  const flow=steps.map((st,i)=>{
+    const [label,emoji,key]=st;
     const state=i<current?'done':(i===current?'current':'');
-    const symbol=i<current?'✓':s[1];
-    return `<div class="action-step ${state}"><div class="action-node">${symbol}</div><div class="action-label">${s[0]}</div></div>`;
+    const symbol=i<current?'✓':emoji;
+
+    let detail='';
+    if(key==='morning'){
+      detail = hasWeight
+        ? `<span class="action-milestone-detail"><strong>${Number(entry.weight).toFixed(1)} kg</strong></span>`
+        : `<span class="action-milestone-detail">—</span>`;
+    } else if(key==='dayend'){
+      detail = frozen
+        ? `<span class="action-milestone-detail"><strong>Completed</strong></span>`
+        : `<span class="action-milestone-detail">—</span>`;
+    } else {
+      const t=mealTotals[key] || {calories:0,protein:0};
+      const done=(key==='breakfast' ? breakfastDone : key==='lunch' ? lunchDone : dinnerDone);
+      detail = done && t.calories+t.protein>0
+        ? `<span class="action-milestone-detail"><strong><span class="metric-line">${t.calories} kcal</span><span class="metric-line">${t.protein}g P</span></strong></span>`
+        : (done ? `<span class="action-milestone-detail"><strong>Skipped</strong></span>` : `<span class="action-milestone-detail">—</span>`);
+    }
+
+    return `<div class="action-step ${state}">
+      <div class="action-node">${symbol}</div>
+      <div class="action-label">${label}${detail}</div>
+    </div>`;
   }).join('');
 
-  const milestone=(label,value)=>`<div class="action-metric"><span>${label}</span><b>${value}</b></div>`;
-  const totalsHtml=entry && (calcCalories>0 || storedCalories!==null) ? `
-    <div class="actions-total">
-      <div class="actions-total-head">Running total <span>validated from today’s entries</span></div>
-      ${milestone('Calories', `${totalCalories} kcal`)}
-      ${milestone('Protein', `${Math.round(totalProtein*10)/10} g`)}
-    </div>` : '';
-
-  const milestonesHtml=`
-    <div class="actions-milestones">
-      ${milestone('Morning', hasWeight ? `${entry.weight} kg` : '—')}
-      ${milestone('Food · Calories', calcCalories>0 ? `${totalCalories} kcal` : '—')}
-      ${milestone('Food · Protein', calcProtein>0 ? `${Math.round(totalProtein*10)/10} g` : '—')}
-    </div>`;
-
-  const linkHtml=link ? `<a class="actions-link" href="chatgpt://">${link} <span>›</span></a>` : '';
+  const linkHtml=link
+    ? `<a class="actions-link" href="intent://chat/#Intent;scheme=chatgpt;package=com.openai.chatgpt;end" onclick="setTimeout(()=>{ if(!document.hidden) window.location.href='https://chatgpt.com/'; },900); return true;">${link} <span>›</span></a>`
+    : '';
 
   el.innerHTML=`
     <div class="actions-grid">
       <div class="actions-left">
         <div class="actions-icon">${icon}</div>
-        <div class="actions-kicker">Actions · ${today}</div>
+        <div class="actions-kicker">Actions</div>
         <div class="actions-main">${title}</div>
+        <div class="actions-date">Logging date: ${fmtDate}</div>
         <div class="actions-sub">${sub}</div>
-        ${milestonesHtml}
-        ${totalsHtml}
         ${linkHtml}
       </div>
-      <div class="action-flow">${flow}</div>
+      <div>
+        <div class="action-flow">${flow}</div>
+        <div class="actions-running-total">
+          <span>Running total</span>
+          <strong>${runningCalories} kcal · ${runningProtein}g P</strong>
+        </div>
+      </div>
     </div>`;
 }
+
 function renderStats(entries){
   const el = document.getElementById('statRow');
   if(!entries.length){ el.innerHTML=''; return; }
